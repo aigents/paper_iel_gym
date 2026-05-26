@@ -4,11 +4,11 @@
 
 - [README.md](./README.md) - this file
 - [LICENSE](./LICENSE) - MIT license file
-- [requirements.txt](./requirements.txt) - external dependencies
+- [requirements.txt](./requirements.txt) - external dependencies for the following experimental code
 
 ### Code
 
-- [breakout_hack_simple.py](./breakout_hack_simple.py) - "cheating" Breakout player, knows rules of the game and properties of the game field, wins 860 (out of top 864 points) always if not limited by number of steps per game (for the reference)
+- [breakout_hack_simple.py](./breakout_hack_simple.py) - "cheating" Breakout player (upper baseline), knows rules of the game and properties of the game field, wins 860 (out of top 864 points) always if not limited by number of steps per game (for the reference)
 - [breakout_hack_simple1.py](./breakout_hack_simple1.py) - same as above "cheating" logic wrapped in BreakoutHacky class (for the reference)
 - [breakout_eval2.py](./breakout_eval2.py) - main evaluation script, see script code for command line options
 - [player.py](./player.py) - main script with learning and acting functinal in repective classes decribed below    
@@ -17,7 +17,7 @@
 
 #### Classes
 
-- ```player.BreakoutHacky``` - "cheating" Breakout player, knows rules of the game and properties of the game field
+- ```player.BreakoutHacky``` - "cheating" Breakout player (upper baseline), knows rules of the game and properties of the game field
   - if action = env.action_space.sample() at game (re)start: wins 831/860 (out of top 864 points, varies even with fixed random seed) if not limited by number of steps per game (108000 steps max) or 616/725/732/856 (varies even with fixed random seed) if limited by 18000 steps
   - if action = 1 at game (re)start: wins 860 (out of top 864 points) always (regardless of random seed) if not limited by number of steps per game (108000 steps max) or 732 (regardless of random seed) if limited by 18000 steps
 - ```player.BreakoutXXProgrammable``` - "Automated" player which transforms input observations to X coordinates of pixel clouds correspondingg to horizontal positions of the ball and the racket
@@ -27,7 +27,7 @@
 
 ### Notebooks with Results
 
-The follwing notebooks keep the results of expeiments performed in command line accordingly to the **Instructions** below, with outputs taken from console outputs andd placed in the notebook for visualization and analysis.     
+The following notebooks keep the results of experiments performed in command line accordingly to the **Instructions** below, with outputs taken from console outputs andd placed in the notebook for visualization and analysis.     
 
 - ```gym_atari_breakout_experiential1.ipynb``` - Results of Phase 1 (Cursory study, Programmable and Learnable Players)
 - ```gym_atari_breakout_experiential2.ipynb``` - Results of Phase 2 (Cursory study, Learnable Player)

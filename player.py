@@ -289,12 +289,16 @@ class BreakoutModelDriven(BreakoutProgrammable): # State-based History-aware Art
     def __init__(self,actions,model=None,learn_mode=0,context_size=2,args=None,debug=False):
         super().__init__(model,learn_mode,context_size,debug)
         self.actions = actions
+        self.args = args
         self.state_count_threshold = 2 if args is None else args.state_count
         self.state_similarity_threshold = 0.9 if args is None else args.state_similarity
         self.transition_utility_thereshold = 0 if args is None else args.transition_utility
         self.transition_count_threshold = 1 if args is None else args.transition_count
+        self.similarity_method = 'cos' if args is None else args.similarity_method
+        self.constant_curiosity = 0.0 if args is None else args.constant_curiosity
+        self.probable_utility = 0 if args is None else args.probable_utility
         #print(type(self.learn_mode),type(self.context_size),type(self.state_count_threshold),type(self.state_similarity_threshold),type(self.transition_utility_thereshold),type(self.transition_count_threshold))
-        print(f"learn_mode={self.learn_mode}; context_size={self.context_size}; state_count={self.state_count_threshold}; state_similarity={self.state_similarity_threshold}; transition_utility={self.transition_utility_thereshold}; transition_count={self.transition_count_threshold}")
+        print(f"learn_mode={self.learn_mode}; context_size={self.context_size}; state_count={self.state_count_threshold}; state_similarity={self.state_similarity_threshold}; transition_utility={self.transition_utility_thereshold}; transition_count={self.transition_count_threshold}; constant_curiosity={self.constant_curiosity}; probable_utility={self.probable_utility}")
 
     def process_state(self, observation, reward, previous_action):
         observation = self.process_observation(observation,reward,previous_action)
@@ -314,7 +318,8 @@ class BreakoutModelDriven(BreakoutProgrammable): # State-based History-aware Art
                 match = 'exact2'
             except KeyError:
                 if self.state_similarity_threshold < 1.0:
-                    found = find_similar(contexts,context, self.state_count_threshold, self.state_similarity_threshold )
+                    found = find_similar(contexts,context, self.state_count_threshold, self.state_similarity_threshold,
+                        self.similarity_method, self.similarity_dims[1], self.similarity_max_dist[1])
                 match = 'similar2'
         if found is None:
             states = self.model['states']
@@ -323,7 +328,8 @@ class BreakoutModelDriven(BreakoutProgrammable): # State-based History-aware Art
                 match = 'exact1'
             except KeyError:
                 if self.state_similarity_threshold < 1.0:
-                    found = find_similar(states,state, self.state_count_threshold, self.state_similarity_threshold)
+                    found = find_similar(states,state, self.state_count_threshold, self.state_similarity_threshold,
+                        self.similarity_method, self.similarity_dims[0], self.similarity_max_dist[0])
                 match = 'similar1'
 
         if not found is None:
@@ -344,14 +350,13 @@ class BreakoutModelDriven(BreakoutProgrammable): # State-based History-aware Art
 
 ## Old code from Nov 3 2025 - performs better now TODO explore why 
 
-def find_similarNov32025_with_rand(states,state,count_threshold,similarity_threshold):
-    #print(f'find_similarNov32025_with_rand count_threshold={count_threshold} similarity_threshold={similarity_threshold}')
+def find_similarNov32025_with_rand(states,state,count_threshold,similarity_threshold,sim_method,dims,max_dist):
     max_sim = 0
     bests = []
     for s, utility_count in states.items():
         if utility_count[1] < count_threshold: # disregard rare evidence
             continue
-        sim = cosine_similarity(s,state)
+        sim = norm_similarity(s,state,sim_method,dims,max_dist)
         if sim < similarity_threshold:
             continue
         if max_sim < sim:
@@ -363,7 +368,7 @@ def find_similarNov32025_with_rand(states,state,count_threshold,similarity_thres
     best = bests[0] if len(bests) == 1 else random.choice(bests) if len(bests) > 1 else None
     return states[best] if not best is None else None
 
-def find_usefulNov32025(transitions,utility_thereshold,count_threshold,counted_utility=False):
+def find_usefulNov32025(transitions,utility_thereshold,count_threshold,probable_utility=False):
     #print(f'find_usefulNov32025 utility_thereshold={utility_thereshold} count_threshold={count_threshold}')
     max_utility = None
     max_count = 0
@@ -374,7 +379,7 @@ def find_usefulNov32025(transitions,utility_thereshold,count_threshold,counted_u
             continue
         if count < count_threshold: # disregard rare evidence
             continue
-        if counted_utility:
+        if probable_utility == 1:
             utility *= count
         if max_utility is None or max_utility < utility:
             max_utility = utility
@@ -388,11 +393,10 @@ def find_usefulNov32025(transitions,utility_thereshold,count_threshold,counted_u
 # TODO remove or merge later
 class BreakoutModelDrivenNov32025(BreakoutModelDriven):
 
-    def __init__(self,actions,model=None,learn_mode=0,context_size=1,args=None,state_reward=True,encode_action=False,counted_utility=False,debug=False):
+    def __init__(self,actions,model=None,learn_mode=0,context_size=1,args=None,state_reward=True,encode_action=False,debug=False):
         super().__init__(model=model,actions=actions,learn_mode=learn_mode,context_size=context_size,args=args,debug=debug)
         self.state_reward = state_reward
         self.encode_action = encode_action
-        self.counted_utility = counted_utility
 
     def process_state(self, observation, reward, previous_action):
         observation = self.process_observation(observation,reward,previous_action)
@@ -417,6 +421,12 @@ class BreakoutModelDrivenNov32025(BreakoutModelDriven):
                 self.states.clear() # clear the states including the rewarded one to start over with new state and new action on it
             self.states.append(state)
 
+        if self.constant_curiosity > 0 and random.choices([True,False], weights=[self.constant_curiosity, 1.0 - self.constant_curiosity], k=1)[0]:
+            return random.choice(self.actions)
+
+        self.similarity_dims = [[3,1,1,178,178],[3,1,1,178,178]*2,[3,1,1,178,178]*3] # HACK - detect this on-the fly or from the model!!!
+        self.similarity_max_dist = [max_corner_distance(d) for d in self.similarity_dims]
+
         found = None
         #TODO compact this code with cs going down from self.context_size to 1
         if self.context_size > 2 and len(self.states) > 2: #TODO make other than 3
@@ -426,8 +436,10 @@ class BreakoutModelDrivenNov32025(BreakoutModelDriven):
                 found = contexts[context]
                 match = 'exact3'
             except KeyError:
-                found = find_similarNov32025_with_rand(contexts,context, self.state_count_threshold, self.state_similarity_threshold )
-                match = 'similar3'
+                if self.state_similarity_threshold < 1.0:
+                    found = find_similarNov32025_with_rand(contexts,context, self.state_count_threshold, self.state_similarity_threshold,
+                        self.similarity_method, self.similarity_dims[2], self.similarity_max_dist[2])
+                    match = 'similar3'
         if found is None and self.context_size > 1 and len(self.states) > 1: #TODO make other than 2
             context = sum(self.states[-2:],())
             contexts = self.model['contexts'][2] #TODO make other than 2
@@ -435,7 +447,9 @@ class BreakoutModelDrivenNov32025(BreakoutModelDriven):
                 found = contexts[context]
                 match = 'exact2'
             except KeyError:
-                found = find_similarNov32025_with_rand(contexts,context, self.state_count_threshold, self.state_similarity_threshold )
+                if self.state_similarity_threshold < 1.0:
+                    found = find_similarNov32025_with_rand(contexts,context, self.state_count_threshold, self.state_similarity_threshold,
+                        self.similarity_method, self.similarity_dims[1], self.similarity_max_dist[1])
                 match = 'similar2'
         if found is None:
             states = self.model['states']
@@ -443,7 +457,9 @@ class BreakoutModelDrivenNov32025(BreakoutModelDriven):
                 found = states[state]
                 match = 'exact1'
             except KeyError:
-                found = find_similarNov32025_with_rand(states,state, self.state_count_threshold, self.state_similarity_threshold)
+                if self.state_similarity_threshold < 1.0:
+                    found = find_similarNov32025_with_rand(states,state, self.state_count_threshold, self.state_similarity_threshold,
+                        self.similarity_method, self.similarity_dims[0], self.similarity_max_dist[0])
                 match = 'similar1'
 
         #if found:
@@ -451,7 +467,7 @@ class BreakoutModelDrivenNov32025(BreakoutModelDriven):
 
         if not found is None:
             (utility,count,transitions) = found
-            best = find_usefulNov32025(transitions, self.transition_utility_thereshold, self.transition_count_threshold, counted_utility=self.counted_utility)
+            best = find_usefulNov32025(transitions, self.transition_utility_thereshold, self.transition_count_threshold, probable_utility=self.probable_utility)
             #print('found',match,state,'=>',found,'=',len(transitions))
             #print(str([(transitions[t][0],transitions[t][1],t[0]) for t in transitions]))
             #print(best)

@@ -20,8 +20,11 @@ parser.add_argument('-lm','--learn_mode', type=int, default=2, help='Learn mode 
 parser.add_argument('-cs','--context_size', type=int, default=1, help='Context size')
 parser.add_argument('-sc','--state_count', type=int, default=2, help='State count threshold')
 parser.add_argument('-ss','--state_similarity', type=float, default=0.9, help='State similarity threshold')
+parser.add_argument('-sm','--similarity_method', type=str, default="cos", help='State similarity method ("cos", "1-d/max", "exp(-d)", "1/(1+d)")')
 parser.add_argument('-tu','--transition_utility', type=int, default=None, help='Transition utility thereshold')
 parser.add_argument('-tc','--transition_count', type=int, default=1, help='Transition count threshold')
+parser.add_argument('-cc','--constant_curiosity', type=float, default=0.0, help='Constant curiosity')
+parser.add_argument('-pu','--probable_utility', type=int, default=0, help='Probable utility (0 => u, 1 => c*u)')
 
 args = parser.parse_args()
 
@@ -48,7 +51,7 @@ print(f"model=\"{args.input}\"; states={len(model['states'])}; games={model['gam
 #eval = BreakoutHacky() # always 860 (108000 steps) or 732 (18000 steps) 
 #eval = BreakoutXXProgrammable()
 #eval = BreakoutProgrammable(model=model,learn_mode=2,debug=False) # seed=1 => [414.0, 439.0, 428.0]; seed=42 => 414.0, 535.0, 562.0; seedd=100 => [716.0, 471.0, 721.0]
-eval = BreakoutModelDrivenNov32025(list(range(env.action_space.n)), model=model, learn_mode=args.learn_mode, context_size=args.context_size, args=args, encode_action = False, counted_utility=False)
+eval = BreakoutModelDrivenNov32025(list(range(env.action_space.n)), model=model, learn_mode=args.learn_mode, context_size=args.context_size, args=args, encode_action = False)
 #eval = BreakoutModelDriven(list(range(env.action_space.n)),model=model,learn_mode=args.learn_mode, context_size=args.context_size, args=args, debug=False)
 
 # For discrete action spaces (like Atari games)
@@ -135,7 +138,7 @@ while (game < args.max_games and total < args.max_total):
             grand_t1 = t1
             total_time = grand_t1 - grand_t0
             print(f'rev=\"{rev}\"; time=\"{str(grand_t0)}\"; max_games={args.max_games}; max_steps={args.max_steps}; seed={args.seed}')
-            print(f"score_avg={round(np.mean(scores),1)}; steps_avg={round(np.mean(stepss),1)}; lives_avg={round(np.mean(livess),1)}; lapse_avg=\"{str(lapse)}\"; time=\"{str(total_time)}\"")
+            print(f"score_avg={round(np.mean(scores),1)}; steps_tot={round(np.sum(stepss),1)}; steps_avg={round(np.mean(stepss),1)}; lives_avg={round(np.mean(livess),1)}; lapse_avg=\"{str(lapse)}\"; time=\"{str(total_time)}\"")
             print('scores =', scores)
             print('stepss =', stepss)
             print('livess =', livess)

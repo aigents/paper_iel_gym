@@ -31,11 +31,13 @@ The following notebooks keep the results of experiments performed in command lin
 
 - ```gym_atari_breakout_experiential1.ipynb``` - Results of Phase 1 (Cursory study, Programmable and Learnable Players)
 - ```gym_atari_breakout_experiential2.ipynb``` - Results of Phase 2 (Cursory study, Learnable Player)
-- ```gym_atari_breakout_experiential3.ipynb``` - Results of Phase 3 (Systematic Study, Learnable Player, 18000 steps/frames limit)  
+- ```gym_atari_breakout_experiential3.ipynb``` - Results of Phase 3 (Systematic Study, Learnable Player), 18000 steps/frames limit, experiments with random seeds on basis of game counts, preliminary search for hyper-parameters
+- ```notebooks/gym/gym_atari_breakout_experiential4similarity.ipynb``` - Results of Phase 3 (Systematic Study, Learnable Player), experiments with diffent similarity asssessment methods
+- ```notebooks/gym/gym_atari_breakout_experiential5frames.ipynb``` - Results of Phase 3 (Systematic Study, Learnable Player), final search for hyper-parameters, final evaluation based on different numbers of game steps/frames for comparison with prior art 
 
 ## Instructions
 
-- Using Python 3.11.13, make sure that have sttandad Python components, ```pip``` and ```vitualenv``` are installed, see https://1cloud.ru/help/linux/ustanovka-jupyter-notebook-na-ubuntu-18-04 
+- Using Python 3.11.13, make sure that have standard Python components, ```pip``` and ```vitualenv``` are installed, see https://1cloud.ru/help/linux/ustanovka-jupyter-notebook-na-ubuntu-18-04 
 - run ```virtualenv env or python -m venv env```
 - run ```. env/bin/activate``` (or ```. ./env/Scripts/activate``` - if under Windows)
 - run ```pip install -r requirements.txt```
@@ -43,7 +45,7 @@ The following notebooks keep the results of experiments performed in command lin
 
 For instance:
 ```
-% python ./breakout_eval2.py -cs=2 -ss=0.9 -tu=0 -s=41 -mg=20 
+% python ./breakout_eval2.py -cs=2 -ss=0.9 -tu=0 -s=41 -mg=20
 
 A.L.E: Arcade Learning Environment (version 0.11.2+ecc1138)
 [Powered by Stella]
@@ -81,4 +83,19 @@ lapses = [0, 1, 1, 1, 3, 3, 3, 2, 4, 5, 10, 7, 6, 9, 5, 8, 6, 10, 10, 10]
 states = [331, 975, 1263, 1468, 1795, 1959, 2146, 2211, 2403, 2581, 2850, 3013, 3153, 3351, 3501, 3702, 3830, 4001, 4158, 4273]
 ```
 
+### Running the final evaluation
 
+To get the latest results reported in the paper, run the following commands:
+```
+mkdir sim_test3
+...
+
+python ./breakout_eval2.py -cs=2 -ss=1.0 -tu=0 -s=2 -mg=5000000 -mt=200000000 -sm="exp(-d)" > sim_test3/exp200000000_s2ss10lm2sc2cs2tu0.txt -o=exp200000000_s2ss10lm2sc2cs2tu0
+...
+
+python ./breakout_eval2.py -cs=2 -ss=1.0 -tu=0 -s=3 -mg=5000000 -mt=200000000 -sm="exp(-d)" > sim_test3/exp200000000_s3ss10lm2sc2cs2tu0.txt -o=exp200000000_s3ss10lm2sc2cs2tu0
+...
+
+python ./breakout_eval2.py -cs=2 -ss=1.0 -tu=0 -s=41 -mg=5000000 -mt=200000000 -sm="exp(-d)" > sim_test3/exp200000000_s41ss10lm2sc2cs2tu0.txt -o=exp200000000_s41ss10lm2sc2cs2tu0
+...
+```
